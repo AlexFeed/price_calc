@@ -1,0 +1,397 @@
+<!doctype html>
+{% load static %}
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор цен</title>
+    <link rel="stylesheet" href="{% static 'calculator/atk_styles.css' %}">
+    <style>
+        :root {
+            --primary-yellow: #FFCC00;
+            --dark-yellow: #E6B800;
+            --black: #212121;
+            --dark-gray: #424242;
+            --light-gray: #F5F5F5;
+            --white: #FFFFFF;
+            --red: #FF5252;
+        }
+        
+        .options-title {
+            font-size: 18px;
+            margin: 30px 0 15px;
+            color: var(--black);
+        }
+        
+        .options-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .option-card {
+            flex: 1;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .option-card:hover {
+            border-color: var(--primary-yellow);
+            transform: translateY(-5px);
+        }
+        
+        .option-card.selected {
+            border-color: var(--primary-yellow);
+            background-color: rgba(255, 204, 0, 0.05);
+        }
+        
+        .option-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--light-gray);
+            border-radius: 50%;
+        }
+        
+        .option-icon img {
+            max-width: 40px;
+            max-height: 40px;
+        }
+        
+        .option-card h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .option-card p {
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+        
+        .hidden-input {
+            display: none;
+        }
+        
+        .option-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-yellow);
+            border-radius: 50%;
+            display: none;
+        }
+        
+        .option-card {
+            position: relative;
+        }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+        <div class="logo-icon">АТК</div>
+        <h1>АТК — Калькулятор</h1>
+      </div>
+      <div class="header-controls">
+        <button class="letters-btn" id="lettersBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Управление письмами
+        </button>
+
+        <div class="notification-container">
+          <button class="notification-btn" id="notificationBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="notification-indicator" id="notificationIndicator">0</div>
+          </button>
+          <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notification-header">
+              <h3>Уведомления</h3>
+              <span style="font-size: 12px; color: var(--dark-gray);" id="notificationCount">0 новых</span>
+            </div>
+            <div class="notification-list" id="notificationList"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="delivery-form">
+        <h2 class="form-title">Калькулятор цен</h2>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-row" style="align-items:center; justify-content:space-between;">
+            <div style="flex:1;">
+              <p style="color:var(--dark-gray); margin-bottom:0;">Ищем ставки за последние {{ validity_days }} дней.</p>
+            </div>
+            <div style="flex:0 0 auto;">
+              <label style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="include_all" name="include_all_dates">
+                <span style="font-size:14px; color:var(--dark-gray);">Показывать записи за все время</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="origin">Откуда</label>
+              <select id="origin" name="origin_city">
+                <option value="">(любая)</option>
+                {% for o in origins %}
+                  <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="destination">Куда</label>
+              <select id="destination" name="destination_city">
+                <option value="">(любая)</option>
+                {% for d in destinations %}
+                  <option value="{{ d }}">{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Замена выпадающего списка типа контейнера на карточки -->
+          <h3 class="options-title">Тип контейнера</h3>
+          <div class="options-container" id="containerOptions">
+            <div class="option-card" data-value="20ft">
+              <div class="option-indicator"></div>
+              <div class="option-icon">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjEyMTIxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE0IiB4PSIyIiB5PSI1IiByeD0iMiI+PC9yZWN0PjxwYXRoIGQ9Ik0xNiAzSDhNNCA5aDE2TTQgMTVoMTZNOCAxOXY0TTE2IDE5djQiPjwvcGF0aD48L3N2Zz4=" alt="Контейнер">
+              </div>
+              <h3>Стандартный</h3>
+              <p>20 футов, до 28 м³</p>
+            </div>
+            <div class="option-card" data-value="40ft">
+              <div class="option-indicator"></div>
+              <div class="option-icon">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjEyMTIxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiB4PSIyIiB5PSI0IiByeD0iMiI+PC9yZWN0PjxwYXRoIGQ9Ik0xNiA0SDhNMTYgMTZIOE0yMCAxMkgyMCI+PC9wYXRoPjwvc3ZnPg==" alt="Большой контейнер">
+              </div>
+              <h3>Большой</h3>
+              <p>40 футов, до 58 м³</p>
+            </div>
+          </div>
+          <input type="hidden" id="container_type" name="container_type" value="" class="hidden-input">
+
+          <!-- Замена выпадающего списка типа транспорта на карточки -->
+          <h3 class="options-title">Тип транспорта</h3>
+          <div class="options-container" id="transportOptions">
+            <div class="option-card" data-value="авто">
+              <div class="option-indicator"></div>
+              <div class="option-icon">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjEyMTIxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiB4PSIyIiB5PSI0IiByeD0iMiI+PC9yZWN0PjxwYXRoIGQ9Ik0yIDhoMTZNMTAgNFYyMCI+PC9wYXRoPjwvc3ZnPg==" alt="Авто">
+              </div>
+              <h3>Автомобиль</h3>
+              <p>Быстрая доставка по стране</p>
+            </div>
+            <div class="option-card" data-value="ж/д">
+              <div class="option-indicator"></div>
+              <div class="option-icon">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjEyMTIxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIgMTBoMTZNMiAxNGgxNk0xMiAydjIwTTQgMThoMTZNNCA2aDE2TTYgMnYyME0xOCAydjIwIj48L3BhdGg+PC9zdmc+" alt="ЖД">
+              </div>
+              <h3>Железная дорога</h3>
+              <p>Экономичная перевозка</p>
+            </div>
+            <div class="option-card" data-value="морской">
+              <div class="option-indicator"></div>
+              <div class="option-icon">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjEyMTIxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIgMjFjOC00IDIwLTggMjAtMTAgMCAyLTQgMy0xMCAxLTYgMi0xMCAzLTEwIDN6Ij48L3BhdGg+PHBhdGggZD0iTTE0IDEzYTQgNCAwIDAgMC00IDQiPjwvcGF0aD48cGF0aCBkPSJNMTggMTNhNCA0IDAgMCAxIDQgNCI+PC9wYXRoPjxwYXRoIGQ9Ik02IDEzYTggOCAwIDAgMSA4IDgiPjwvcGF0aD48L3N2Zz4=" alt="Море">
+              </div>
+              <h3>Морской транспорт</h3>
+              <p>Международные перевозки</p>
+            </div>
+          </div>
+          <input type="hidden" id="transport_type" name="transport_type" value="" class="hidden-input">
+
+
+          <button class="submit-btn" type="submit">Посчитать</button>
+        </form>
+
+        <div class="result-container" id="resultContainer" style="display:none;">
+          <div class="result-title">Результаты поиска</div>
+          <div id="resultsSummary" style="margin-bottom:12px; color:var(--dark-gray);"></div>
+          <div id="resultsTableContainer">
+            <!-- таблица результатов будет вставлена сюда -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer>
+      <div class="copyright">&copy; АТК. Все права защищены.</div>
+    </footer>
+    <script>
+      // helper to read CSRF cookie
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+      }
+      
+      // Функция для выбора опций с toggle-логикой
+      function selectOption(element, type) {
+        const container = document.getElementById(type === 'container' ? 'containerOptions' : 'transportOptions');
+        const options = container.querySelectorAll('.option-card');
+        const hiddenInput = document.getElementById(type === 'container' ? 'container_type' : 'transport_type');
+        const indicator = element.querySelector('.option-indicator');
+        
+        // Если элемент уже выбран - снимаем выбор
+        if (element.classList.contains('selected')) {
+          element.classList.remove('selected');
+          indicator.style.display = 'none';
+          hiddenInput.value = ''; // Очищаем значение - значит ищем без фильтрации
+        } else {
+          // Снимаем выбор со всех элементов
+          options.forEach(option => {
+            option.classList.remove('selected');
+            option.querySelector('.option-indicator').style.display = 'none';
+          });
+          
+          // Выбираем текущий элемент
+          element.classList.add('selected');
+          indicator.style.display = 'block';
+          hiddenInput.value = element.getAttribute('data-value');
+        }
+      }
+      
+      // fetch notifications count and items
+      function loadNotifications() {
+        fetch('/manage/api/notifications/')
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(data => {
+            const count = data.count || 0;
+            document.getElementById('notificationIndicator').textContent = count;
+            document.getElementById('notificationCount').textContent = `${count} новых`;
+            const list = document.getElementById('notificationList');
+            list.innerHTML = '';
+            if (data.items && data.items.length>0) {
+              data.items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'notification-item';
+                itemDiv.innerHTML = `<h4>Письмо #${item.id} обработано некорректно</h4><p>От: ${item.client || '—'}, Маршрут: ${item.routeFrom} → ${item.routeTo}</p>`;
+                itemDiv.addEventListener('click', () => { window.location.href = `/manage/?open_id=${item.id}`; });
+                list.appendChild(itemDiv);
+              });
+            } else {
+              const noDiv = document.createElement('div');
+              noDiv.className = 'no-notifications';
+              noDiv.textContent = 'Нет новых уведомлений';
+              list.appendChild(noDiv);
+            }
+          })
+          .catch(()=>{ /* ignore */ });
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        // Инициализация выбора опций
+        const containerCards = document.querySelectorAll('#containerOptions .option-card');
+        const transportCards = document.querySelectorAll('#transportOptions .option-card');
+        
+        containerCards.forEach(card => {
+          card.addEventListener('click', function() {
+            selectOption(this, 'container');
+          });
+        });
+        
+        transportCards.forEach(card => {
+          card.addEventListener('click', function() {
+            selectOption(this, 'transport');
+          });
+        });
+
+        // letters button navigates to manage page
+        const lettersBtn = document.getElementById('lettersBtn');
+        if (lettersBtn) lettersBtn.addEventListener('click', () => { window.location.href = '/manage/'; });
+
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        if (notificationBtn) {
+          notificationBtn.addEventListener('click', function(){
+            notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
+          });
+        }
+
+        // load notifications once on page load
+        loadNotifications();
+
+        // Intercept calculator form and load results into the in-page container
+        const calcForm = document.querySelector('form');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const resultsTableContainer = document.getElementById('resultsTableContainer');
+
+        if (calcForm) {
+          calcForm.addEventListener('submit', function(e){
+            e.preventDefault();
+            const formData = new FormData(calcForm);
+            // include checkbox boolean as presence
+            if (!formData.get('include_all_dates')) {
+              // ensure falsey or absent; backend treats absence as false
+            }
+
+            fetch('/calculator/api/calc/', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+              },
+              body: formData
+            })
+            .then(r => r.ok ? r.json() : r.json().then(j => { throw j; }))
+            .then(data => {
+              // render stats
+              const stats = data.stats;
+              if (stats) {
+                resultsSummary.innerHTML = `<strong>Найдено ставок:</strong> ${stats.count || 0}`;
+              } else {
+                resultsSummary.innerHTML = '<span style="color:var(--dark-gray);">По выбранным критериям ставок не найдено.</span>';
+              }
+
+              // render table
+              const rates = data.rates || [];
+              if (rates.length === 0) {
+                resultsTableContainer.innerHTML = '<div style="color:var(--dark-gray);">Нет записей для отображения.</div>';
+              } else {
+                let html = '<table style="width:100%; border-collapse:collapse;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Дата</th><th>Откуда</th><th>Куда</th><th>Контейнер</th><th>Транспорт</th><th>Email</th><th>Тариф</th></tr></thead><tbody>';
+                rates.forEach(r => {
+                  html += `<tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">${r.input_date}</td><td style="padding:8px 4px;">${r.origin_city}</td><td style="padding:8px 4px;">${r.destination_city}</td><td style="padding:8px 4px;">${r.container_type}</td><td style="padding:8px 4px;">${r.transport_type}</td><td style="padding:8px 4px;">${r.email || '—'}</td><td style="padding:8px 4px; font-weight:600;">${r.rate}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                resultsTableContainer.innerHTML = html;
+              }
+
+              resultContainer.style.display = 'block';
+              // scroll into view
+              resultContainer.scrollIntoView({behavior: 'smooth'});
+            })
+            .catch(err => {
+              resultsSummary.innerHTML = '<span style="color:var(--red);">Ошибка при запросе результатов</span>';
+              resultsTableContainer.innerHTML = '';
+              resultContainer.style.display = 'block';
+            });
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

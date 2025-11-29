@@ -1,0 +1,29 @@
+[
+  {
+    "origin_city": "Москва",
+    "destination_city": "Санкт-Петербург",
+    "container_type": "20ft",
+    "transport_type": "морской",
+    "email": "",
+    "rate": -50.00,
+    "input_date": "2025-11-05T12:00:00Z"
+  },
+  {
+    "origin_city": "Москва",
+    "destination_city": "Санкт-Петербург",
+    "container_type": "20ft",
+    "transport_type": "морской",
+    "email": "",
+    "rate": 100.00,
+    "input_date": "2025-11-10T12:00:00Z"
+  },
+  {
+    "origin_city": "Москва",
+    "destination_city": "Новосибирск",
+    "container_type": "40ft",
+    "transport_type": "ж/д",
+    "email": "",
+    "rate": 200.00,
+    "input_date": "2025-10-20T12:00:00Z"
+  }
+]
