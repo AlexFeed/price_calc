@@ -123,3 +123,51 @@
     color:var(--dark-gray);
 }
 
+
+/* Стили для счетчика в уведомлениях */
+.notification-count-text {
+    font-size: 12px;
+    color: var(--dark-gray);
+}
+
+/* Строка с галочкой "Показывать все даты" */
+.form-row.dates-filter-row {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.filter-info-col {
+    flex: 1;
+}
+
+.filter-hint-text {
+    color: var(--dark-gray);
+    margin-bottom: 0;
+}
+
+.filter-control-col {
+    flex: 0 0 auto;
+}
+
+.checkbox-label-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.checkbox-label-text {
+    font-size: 14px;
+    color: var(--dark-gray);
+}
+
+/* Блок результатов */
+.result-container {
+    /* Скрываем по умолчанию, JS покажет его через style="display: block" */
+    display: none;
+}
+
+.results-summary-text {
+    margin-bottom: 12px;
+    color: var(--dark-gray);
+}
