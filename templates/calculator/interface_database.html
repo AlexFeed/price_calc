@@ -28,12 +28,12 @@
     <div class="auth-container">
         <div class="auth-form">
             <h2 class="auth-title">Вход в систему</h2>
-            
+
             <div class="auth-tabs">
                 <div class="auth-tab active" id="loginTab">Вход</div>
                 <div class="auth-tab" id="registerTab">Регистрация</div>
             </div>
-            
+
             <div id="loginForm">
                 <div class="form-group">
                     <label for="loginEmail">Электронная почта</label>
@@ -46,7 +46,7 @@
                 <button class="auth-btn" id="loginBtn">Войти</button>
                 <div class="auth-error" id="loginError">Неверный email или пароль</div>
             </div>
-            
+
             <div id="registerForm" class="hidden">
                 <div class="form-group">
                     <label for="registerEmail">Электронная почта</label>
@@ -77,7 +77,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div class="controls">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
@@ -94,14 +94,15 @@
                     Добавить письмо
                 </button>
             </div>
-            
+
             <div class="data-container">
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>ID письма</th>
-                                <th>Клиент</th>
+                                <th>Компания</th>
+                                <th>Email</th>
                                 <th>Маршрут (откуда-куда)</th>
                                 <th>Ставка</th>
                                 <th>Дата расчёта</th>
@@ -114,7 +115,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div class="pagination">
                     <div class="page-info">Показано 1-10 из 127 писем</div>
                     <div class="page-controls">
@@ -138,12 +139,18 @@
                 <h3 class="modal-title" id="modalTitle">Добавить письмо</h3>
                 <button class="close-btn" id="closeModalBtn">&times;</button>
             </div>
-            
-            <div class="form-group">
-                <label for="client">Клиент</label>
-                <input type="text" id="client" placeholder="Введите название клиента">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="clientName">Название компании</label>
+                    <input type="text" id="clientName" placeholder="Введите название...">
+                </div>
+                <div class="form-group">
+                    <label for="clientEmail">Email компании</label>
+                    <input type="email" id="clientEmail" placeholder="Формат: mail@example.com">
+                </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="routeFrom">Откуда</label>
@@ -154,7 +161,7 @@
                     <input type="text" id="routeTo" placeholder="Город назначения">
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="rate">Ставка</label>
@@ -165,7 +172,7 @@
                     <input type="date" id="calculationDate">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="processingStatus">Корректность обработки</label>
                 <select id="processingStatus">
@@ -174,12 +181,12 @@
                     <option value="pending">В обработке</option>
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="comments">Комментарии</label>
                 <textarea id="comments" placeholder="Введите комментарии" rows="3"></textarea>
             </div>
-            
+
             <div class="modal-footer">
                 <button class="cancel-btn" id="cancelModalBtn">Отмена</button>
                 <button class="save-btn" id="saveRecordBtn">Сохранить письмо</button>

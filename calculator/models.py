@@ -6,6 +6,8 @@ class Rate(models.Model):
     destination_city = models.CharField(max_length=200)
     container_type = models.CharField(max_length=100)
     transport_type = models.CharField(max_length=100)
+    client_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Имя клиента")
+
     # processing status: correct / incorrect / pending
     PROCESSING_STATUS_CHOICES = [
         ('correct', 'Корректно'),
@@ -24,6 +26,6 @@ class Rate(models.Model):
         ordering = ['-input_date']
 
     def __str__(self):
-        return f"{self.origin_city} -> {self.destination_city} | {self.container_type} | {self.transport_type} : {self.rate}"
+        return f"{self.client_name or 'NoName'} {self.origin_city} -> {self.destination_city} | {self.container_type} | {self.transport_type} : {self.rate}"
 
 

@@ -283,7 +283,8 @@ function loadRecords(page = 1) {
 // normalize server-side snake_case fields to client-friendly camelCase
             records = records.map(r => {
                 return Object.assign({}, r, {
-                    client: r.client || r.email || '',
+                    clientName: r.client_name || '',
+                    clientEmail: r.email || '',
                     routeFrom: r.routeFrom || r.origin_city || '',
                     routeTo: r.routeTo || r.destination_city || '',
                     calculationDate: r.calculationDate || (r.input_date ? (r.input_date.length >= 10 ? r.input_date.substr(0, 10) : r.input_date) : ''),
@@ -362,6 +363,8 @@ function loadRecords(page = 1) {
 }
 
 function renderRecords(recordsToRender) {
+    // Рендер всех ставок из сервера в html
+
     const tableBody = document.getElementById('recordsTableBody');
     tableBody.innerHTML = '';
 
@@ -397,25 +400,22 @@ function renderRecords(recordsToRender) {
         const statusText = getStatusText(record.processing_status || record.processingStatus);
         const row = document.createElement('tr');
         row.innerHTML = `
-                <td>${record.id}</td>
-                                  <td>
-${record.client || record.email || ''}
-${record.last_edited_by || record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.last_edited_by || record.lastEditedBy}</div>` : ''}
-</td>
-  <td>${record.origin_city || record.routeFrom || ''} → ${record.destination_city || record.routeTo || ''}</td>
-                                                                                                            <td>${record.rate} $</td>
-                                                                                                                                  <td>${formatDate(record.input_date || record.calculationDate)}</td>
-                                                                                                                                                                                                  <td><span class="${statusClass}">${statusText}</span></td>
-<td>
-<div class="action-buttons">
-<button class="edit-btn" data-id="${record.id}">
-<i class="fas fa-edit"></i>
-</button>
-<button class="delete-btn" data-id="${record.id}">
-<i class="fas fa-trash"></i>
-</button>
-</div>
-</td>
+                 <td>${record.id}</td>
+    <td><strong>${record.clientName || '-'}</strong></td> 
+    <td>
+        ${record.clientEmail || '-'}
+        ${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.lastEditedBy}</div>` : ''}
+    </td> <!-- Email -->
+    <td>${record.routeFrom} → ${record.routeTo}</td>
+    <td>${record.rate} $</td>
+    <td>${formatDate(record.calculationDate)}</td>
+    <td><span class="${statusClass}">${statusText}</span></td>
+    <td>
+        <div class="action-buttons">
+            <button class="edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
+        </div>
+    </td>
 `;
         tableBody.appendChild(row);
     });
@@ -542,7 +542,8 @@ function openEditModal(id) {
     document.getElementById('modalTitle').textContent = 'Редактировать письмо';
 
 // Заполняем форму данными записи (берём camelCase поля, уже нормализованные при загрузке)
-    document.getElementById('client').value = record.client || '';
+    document.getElementById('clientName').value = record.client_name || '';
+    document.getElementById('clientEmail').value = record.email || '';
     document.getElementById('routeFrom').value = record.routeFrom || '';
     document.getElementById('routeTo').value = record.routeTo || '';
     document.getElementById('rate').value = (record.rate !== undefined && record.rate !== null) ? record.rate : '';
@@ -563,7 +564,8 @@ function openEditModal(id) {
 }
 
 function clearModalForm() {
-    document.getElementById('client').value = '';
+    document.getElementById('clientName').value = '';
+    document.getElementById('clientEmail').value = '';
     document.getElementById('routeFrom').value = '';
     document.getElementById('routeTo').value = '';
     document.getElementById('rate').value = '';
@@ -577,19 +579,21 @@ function closeModal() {
 }
 
 function saveRecord() {
-    const client = document.getElementById('client').value;
+    const clientName = document.getElementById('clientName').value;
+    const clientEmail = document.getElementById('clientEmail').value;
     const routeFrom = document.getElementById('routeFrom').value;
     const routeTo = document.getElementById('routeTo').value;
     const rate = document.getElementById('rate').value;
     const calculationDate = document.getElementById('calculationDate').value;
 
-    if (!client || !routeFrom || !routeTo || !rate || !calculationDate) {
+    if (!clientName || !clientEmail || !routeFrom || !routeTo || !rate || !calculationDate) {
         alert('Пожалуйста, заполните все обязательные поля');
         return;
     }
 
     const recordData = {
-        client,
+        clientName,
+        clientEmail,
         routeFrom,
         routeTo,
         rate,
@@ -601,7 +605,7 @@ function saveRecord() {
     };
 
     if (editingRecordId) {
-// Update existing record on server
+        // Update existing record on server
         const payload = {
             origin_city: routeFrom,
             destination_city: routeTo,
@@ -609,7 +613,8 @@ function saveRecord() {
             input_date: calculationDate,
             processing_status: document.getElementById('processingStatus').value,
             comments: document.getElementById('comments').value,
-            email: client
+            client_name: clientName,
+            email: clientEmail,
         };
 
         fetch(`/manage/api/records/${editingRecordId}/`, {
@@ -628,7 +633,7 @@ function saveRecord() {
                 return r.json();
             })
             .then(data => {
-// refresh the list from server to reflect saved changes
+                // refresh the list from server to reflect saved changes
                 closeModal();
                 loadRecords(currentPage);
             })
@@ -636,15 +641,44 @@ function saveRecord() {
                 alert('Не удалось сохранить изменения на сервере');
             });
     } else {
-        // Добавление новой записи локально (создание на сервере не реализовано)
-        const newRecord = {
-            id: records.length > 0 ? Math.max(...records.map(r => r.id)) + 1 : 1,
-            ...recordData
+        // Создание НОВОЙ записи в бд
+
+        // Готовим данные для сервера (в snake_case, как в базе)
+        const payload = {
+            client_name: clientName,
+            email: clientEmail,
+            origin_city: routeFrom,
+            destination_city: routeTo,
+            rate: rate,
+            input_date: calculationDate,
+            processing_status: document.getElementById('processingStatus').value,
+            comments: document.getElementById('comments').value
         };
-        records.push(newRecord);
-        localStorage.setItem('mailRecords', JSON.stringify(records));
-        closeModal();
-        loadRecords(currentPage);
+
+        // Отправляем POST запрос на создание
+        fetch('/manage/api/records/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(r => {
+                if (!r.ok) return r.json().then(j => { throw j; });
+                return r.json();
+            })
+            .then(data => {
+                // Успех!
+                closeModal();
+                // Загружаем данные с сервера заново (чтобы увидеть новую запись с её реальным ID)
+                loadRecords(1);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка при создании записи');
+            });
     }
 }
 

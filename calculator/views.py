@@ -13,7 +13,6 @@ from django.contrib.auth.models import User
 from django.utils.dateparse import parse_datetime
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-
 VALIDITY_DAYS = 14
 
 
@@ -111,7 +110,8 @@ def calc_api(request):
     dest = request.POST.get('destination_city') or request.GET.get('destination_city')
     container = request.POST.get('container_type') or request.GET.get('container_type')
     transport = request.POST.get('transport_type') or request.GET.get('transport_type')
-    include_all = request.POST.get('include_all_dates') or request.POST.get('include_all') or request.GET.get('include_all')
+    include_all = request.POST.get('include_all_dates') or request.POST.get('include_all') or request.GET.get(
+        'include_all')
 
     qs = Rate.objects.all()
     if origin:
@@ -162,10 +162,12 @@ def manage_users_api(request):
     Uses Django's built-in User model so passwords are hashed and users appear in admin.
     """
     if request.method == 'GET':
-        qs = User.objects.filter(is_active=True).order_by('-date_joined').values('id', 'email', 'first_name', 'date_joined')
+        qs = User.objects.filter(is_active=True).order_by('-date_joined').values('id', 'email', 'first_name',
+                                                                                 'date_joined')
         users = []
         for u in qs:
-            users.append({'id': u['id'], 'email': u['email'], 'name': u.get('first_name', ''), 'created_at': u['date_joined']})
+            users.append(
+                {'id': u['id'], 'email': u['email'], 'name': u.get('first_name', ''), 'created_at': u['date_joined']})
         return JsonResponse({'users': users})
 
     if request.method == 'POST':
@@ -210,7 +212,8 @@ def manage_users_api(request):
         except Exception:
             pass
 
-        return JsonResponse({'id': user.id, 'email': user.email, 'name': user.first_name, 'created': created, 'date_joined': user.date_joined})
+        return JsonResponse({'id': user.id, 'email': user.email, 'name': user.first_name, 'created': created,
+                             'date_joined': user.date_joined})
 
 
 def manage_login_api(request):
@@ -254,60 +257,109 @@ def whoami(request):
 
 
 def records_api(request):
-    """API: GET list of Rate records with pagination and optional status filter.
+    """
+    API:
+    GET -> вернуть список записей (с пагинацией и фильтрами)
+    POST -> создать НОВУЮ запись
 
     Query params:
       - page (int, default=1)
       - page_size (int, default=10)
       - status (correct|incorrect|pending) optional
     """
-    if request.method != 'GET':
-        return JsonResponse({'error': 'GET required'}, status=405)
+    # Добавление нового письма в таблицу
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'authentication required'}, status=403)
 
-    page = int(request.GET.get('page', 1))
-    page_size = int(request.GET.get('page_size', 10))
-    status = request.GET.get('status')
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            return HttpResponseBadRequest('invalid json')
 
-    qs = Rate.objects.order_by('-input_date')
-    if status:
-        qs = qs.filter(processing_status=status)
+        # Подготовка данных
+        try:
+            from decimal import Decimal
+            rate_val = Decimal(str(payload.get('rate', 0)))
+        except:
+            rate_val = 0
 
-    paginator = Paginator(qs, page_size)
-    try:
-        page_obj = paginator.page(page)
-    except (EmptyPage, PageNotAnInteger):
-        page_obj = paginator.page(1)
+        # Парсинг даты (если пришла строка, превращаем в дату)
+        input_date = payload.get('input_date') or payload.get('calculationDate')
+        dt = timezone.now()
+        if input_date:
+            try:
+                parsed = parse_datetime(input_date)
+                if parsed: dt = parsed
+            except: pass
 
-    records = []
-    for r in page_obj.object_list:
-        records.append({
-            'id': r.id,
-            'origin_city': r.origin_city,
-            'destination_city': r.destination_city,
-            'container_type': r.container_type,
-            'transport_type': r.transport_type,
-            'email': r.email,
-            'rate': float(r.rate),
-            'input_date': r.input_date.isoformat(),
-            'processing_status': r.processing_status,
-            'last_edited_by': r.last_edited_by,
+        # Создание записи в базе
+        new_record = Rate.objects.create(
+            client_name=payload.get('client_name', ''),   # Название компании
+            email=payload.get('email', ''),               # Email
+            origin_city=payload.get('origin_city') or payload.get('routeFrom', ''),
+            destination_city=payload.get('destination_city') or payload.get('routeTo', ''),
+            rate=rate_val,
+            input_date=dt,
+            processing_status=payload.get('processing_status', 'pending'),
+
+            # Дефолтные значения (можно будет добавить в форму позже)
+            container_type=payload.get('container_type', '20ft'),
+            transport_type=payload.get('transport_type', 'авто'),
+
+            last_edited_by=request.user.email
+        )
+
+        # Возвращаем ID созданной записи
+        return JsonResponse({'status': 'created', 'id': new_record.id}, status=201)
+
+
+    # Получение всех записей из бд
+    if request.method == 'GET':
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
+        status = request.GET.get('status')
+
+        qs = Rate.objects.order_by('-input_date')
+        if status:
+            qs = qs.filter(processing_status=status)
+
+        paginator = Paginator(qs, page_size)
+        try:
+            page_obj = paginator.page(page)
+        except (EmptyPage, PageNotAnInteger):
+            page_obj = paginator.page(1)
+
+        records = []
+        for r in page_obj.object_list:
+            records.append({
+                'id': r.id,
+                'client_name': r.client_name,
+                'email': r.email,
+                'origin_city': r.origin_city,
+                'destination_city': r.destination_city,
+                'container_type': r.container_type,
+                'transport_type': r.transport_type,
+                'rate': float(r.rate),
+                'input_date': r.input_date.isoformat(),
+                'processing_status': r.processing_status,
+                'last_edited_by': r.last_edited_by,
+            })
+
+        return JsonResponse({
+            'total': paginator.count,
+            'page': page_obj.number,
+            'page_size': page_size,
+            'num_pages': paginator.num_pages,
+            'records': records,
         })
 
-    return JsonResponse({
-        'total': paginator.count,
-        'page': page_obj.number,
-        'page_size': page_size,
-        'num_pages': paginator.num_pages,
-        'records': records,
-    })
+    return JsonResponse({'error': 'method not allowed'}, status=405)
 
 
 def record_detail_api(request, record_id):
-    """Return or update a single Rate record as JSON (by id).
+    """Return or update a single Rate record as JSON (by id)."""
 
-    GET: return record JSON.
-    POST: update record fields from JSON body (authenticated users only) and return updated record.
-    """
     # GET -> return record
     if request.method == 'GET':
         try:
@@ -315,16 +367,16 @@ def record_detail_api(request, record_id):
         except Rate.DoesNotExist:
             return JsonResponse({'error': 'not found'}, status=404)
 
-        # provide both snake_case and some camelCase aliases to be resilient on the client
         rec = {
             'id': r.id,
+            'client_name': r.client_name,
+            'email': r.email,
             'origin_city': r.origin_city,
             'destination_city': r.destination_city,
             'routeFrom': r.origin_city,
             'routeTo': r.destination_city,
             'container_type': r.container_type,
             'transport_type': r.transport_type,
-            'email': r.email,
             'rate': float(r.rate),
             'input_date': r.input_date.isoformat(),
             'calculationDate': r.input_date.isoformat(),
@@ -332,11 +384,10 @@ def record_detail_api(request, record_id):
             'processingStatus': r.processing_status,
             'last_edited_by': r.last_edited_by,
             'lastEditedBy': r.last_edited_by,
-            'comments': '',
         }
         return JsonResponse({'record': rec})
 
-    # POST -> update record (require authentication)
+    # POST -> update record
     if request.method == 'POST':
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'authentication required'}, status=403)
@@ -351,76 +402,46 @@ def record_detail_api(request, record_id):
         except Rate.DoesNotExist:
             return JsonResponse({'error': 'not found'}, status=404)
 
-        # update allowed fields if present
+        # Обновляем поля
+        # Читаем имя клиента
+        if 'client_name' in payload:
+            r.client_name = payload['client_name']
+
+        if 'email' in payload:
+            r.email = payload['email']
+
+        # Остальные поля (без изменений логики)
         origin = payload.get('origin_city') or payload.get('routeFrom')
         dest = payload.get('destination_city') or payload.get('routeTo')
-        container = payload.get('container_type')
-        transport = payload.get('transport_type')
-        email = payload.get('email')
-        rate_val = payload.get('rate')
-        input_date = payload.get('input_date') or payload.get('calculationDate')
-        processing = payload.get('processing_status') or payload.get('processingStatus')
-        comments = payload.get('comments')
+        if origin: r.origin_city = origin
+        if dest: r.destination_city = dest
 
-        if origin is not None:
-            r.origin_city = origin
-        if dest is not None:
-            r.destination_city = dest
-        if container is not None:
-            r.container_type = container
-        if transport is not None:
-            r.transport_type = transport
-        if email is not None:
-            r.email = email
+        rate_val = payload.get('rate')
         if rate_val is not None:
             try:
                 from decimal import Decimal
                 r.rate = Decimal(str(rate_val))
-            except Exception:
+            except:
                 pass
+
+        input_date = payload.get('input_date') or payload.get('calculationDate')
         if input_date:
             try:
                 dt = parse_datetime(input_date)
-                if dt:
-                    r.input_date = dt
-            except Exception:
+                if dt: r.input_date = dt
+            except:
                 pass
-        if processing is not None:
-            if processing in dict(Rate.PROCESSING_STATUS_CHOICES):
-                r.processing_status = processing
-        if comments is not None:
-            # currently comments not stored on model; could be saved to last_edited_by or ignored
-            pass
 
-        # who edited
-        try:
-            if request.user.email:
-                r.last_edited_by = request.user.email
-        except Exception:
-            pass
+        processing = payload.get('processing_status') or payload.get('processingStatus')
+        if processing in dict(Rate.PROCESSING_STATUS_CHOICES):
+            r.processing_status = processing
+
+        # Кто редактировал
+        if request.user.email:
+            r.last_edited_by = request.user.email
 
         r.save()
-
-        # return updated record
-        rec = {
-            'id': r.id,
-            'origin_city': r.origin_city,
-            'destination_city': r.destination_city,
-            'routeFrom': r.origin_city,
-            'routeTo': r.destination_city,
-            'container_type': r.container_type,
-            'transport_type': r.transport_type,
-            'email': r.email,
-            'rate': float(r.rate),
-            'input_date': r.input_date.isoformat(),
-            'calculationDate': r.input_date.isoformat(),
-            'processing_status': r.processing_status,
-            'processingStatus': r.processing_status,
-            'last_edited_by': r.last_edited_by,
-            'lastEditedBy': r.last_edited_by,
-        }
-
-        return JsonResponse({'record': rec})
+        return JsonResponse({'status': 'ok'})
 
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
