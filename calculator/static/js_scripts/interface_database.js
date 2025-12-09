@@ -86,12 +86,55 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('closeModalBtn').addEventListener('click', closeModal);
     document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
     document.getElementById('saveRecordBtn').addEventListener('click', saveRecord);
+
+    // Обработчик поиска по строкам
+    let searchTimeout = null;
     document.getElementById('searchInput').addEventListener('input', function () {
-        renderRecords(records);
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadRecords(1);
+        }, 500);
     });
     document.getElementById('statusFilter').addEventListener('change', function () {
         loadRecords(1);
     });
+
+    // Логика переключения валют
+    document.querySelectorAll('.currency-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 1. Убираем активный класс у всех
+            document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
+            // 2. Добавляем текущей
+            this.classList.add('active');
+            // 3. Пишем значение в скрытый инпут
+            document.getElementById('currency').value = this.getAttribute('data-value');
+        });
+    });
+
+    // --- Логика выбора карточек (Контейнер и Транспорт) ---
+    function setupOptionCards(gridId, hiddenInputId) {
+        const grid = document.getElementById(gridId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+
+        if (!grid || !hiddenInput) return;
+
+        const cards = grid.querySelectorAll('.option-card');
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                // 1. Снимаем выделение со всех в этой группе
+                cards.forEach(c => c.classList.remove('selected'));
+                // 2. Выделяем текущую
+                card.classList.add('selected');
+                // 3. Пишем значение в скрытый инпут
+                hiddenInput.value = card.getAttribute('data-value');
+            });
+        });
+    }
+
+// Инициализируем обе группы
+    setupOptionCards('containerOptionsGrid', 'containerType');
+    setupOptionCards('transportOptionsGrid', 'transportType');
+
 
 // If a request to open a specific record was passed in URL, remember it
     try {
@@ -269,11 +312,27 @@ function showDashboard() {
 function loadRecords(page = 1) {
     const tableBody = document.getElementById('recordsTableBody');
     tableBody.innerHTML = '';
+
     const status = document.getElementById('statusFilter').value;
+    const searchQuery = document.getElementById('searchInput').value.trim(); // Читаем поиск
+
     currentPage = page || 1;
 
-    const statusParam = status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '';
-    fetch(`/manage/api/records/?page=${currentPage}&page_size=${PAGE_SIZE}${statusParam}`, {credentials: 'same-origin'})
+    // Формируем параметры URL
+    const params = new URLSearchParams({
+        page: currentPage,
+        page_size: PAGE_SIZE
+    });
+
+    // Добавляем фильтры, если они есть
+    if (status && status !== 'all') {
+        params.append('status', status);
+    }
+    if (searchQuery) {
+        params.append('search', searchQuery); // Отправляем поиск на сервер
+    }
+
+    fetch(`/manage/api/records/?${params.toString()}`, {credentials: 'same-origin'})
         .then(r => {
             if (!r.ok) throw new Error('Ошибка загрузки');
             return r.json();
@@ -287,6 +346,9 @@ function loadRecords(page = 1) {
                     clientEmail: r.email || '',
                     routeFrom: r.routeFrom || r.origin_city || '',
                     routeTo: r.routeTo || r.destination_city || '',
+                    currency: r.currency || 'USD',
+                    containerType: r.container_type || '20ft',
+                    transportType: r.transport_type || 'авто',
                     calculationDate: r.calculationDate || (r.input_date ? (r.input_date.length >= 10 ? r.input_date.substr(0, 10) : r.input_date) : ''),
                     processingStatus: r.processingStatus || r.processing_status || 'pending',
                     comments: r.comments || r.note || '',
@@ -363,90 +425,85 @@ function loadRecords(page = 1) {
 }
 
 function renderRecords(recordsToRender) {
-    // Рендер всех ставок из сервера в html
-
     const tableBody = document.getElementById('recordsTableBody');
     tableBody.innerHTML = '';
 
+    // Управляем видимостью пагинации
+    const paginationContainer = document.querySelector('.pagination');
+    if (paginationContainer) {
+        // Скрываем, если страниц <= 1
+        paginationContainer.style.display = (numPages > 1) ? 'flex' : 'none';
+    }
+
+    // Проверка на пустоту
     if (!recordsToRender || recordsToRender.length === 0) {
-        tableBody.innerHTML = `
-                          <tr>
-                          <td colspan="7">
-                                      <div class="empty-state">
-<i class="fas fa-envelope"></i>
-<h3>Писем пока нет</h3>
-<p>Добавьте первое письмо, нажав на кнопку "Добавить письмо"</p>
-</div>
-</td>
-</tr>
-`;
+        // ... вывод "ничего не найдено" ...
         return;
     }
 
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
+    // Отрисовка строк
     recordsToRender.forEach(record => {
-// apply simple on-page search filtering
-        const client = (record.client || record.email || '').toLowerCase();
-        const routeFrom = (record.origin_city || record.routeFrom || '').toLowerCase();
-        const routeTo = (record.destination_city || record.routeTo || '').toLowerCase();
-        if (searchTerm) {
-            if (!(client.includes(searchTerm) || routeFrom.includes(searchTerm) || routeTo.includes(searchTerm))) {
-                return; // skip non-matching on this page
-            }
-        }
+        const statusClass = getStatusClass(record.processingStatus);
+        const statusText = getStatusText(record.processingStatus);
+        const currencySymbol = (record.currency === 'RUB') ? '₽' : '$';
 
-        const statusClass = getStatusClass(record.processing_status || record.processingStatus);
-        const statusText = getStatusText(record.processing_status || record.processingStatus);
         const row = document.createElement('tr');
         row.innerHTML = `
-                 <td>${record.id}</td>
-    <td><strong>${record.clientName || '-'}</strong></td> 
-    <td>
-        ${record.clientEmail || '-'}
-        ${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.lastEditedBy}</div>` : ''}
-    </td> <!-- Email -->
-    <td>${record.routeFrom} → ${record.routeTo}</td>
-    <td>${record.rate} $</td>
-    <td>${formatDate(record.calculationDate)}</td>
-    <td><span class="${statusClass}">${statusText}</span></td>
-    <td>
-        <div class="action-buttons">
-            <button class="edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
-            <button class="delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
-        </div>
-    </td>
-`;
+            <td><strong>${record.clientName || '-'}</strong></td>
+            <td>
+                ${record.clientEmail || '-'}
+                ${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.lastEditedBy}</div>` : ''}
+            </td>
+            <td>${record.routeFrom} → ${record.routeTo}</td>
+            
+            <td>${record.containerType || '20ft'}</td>
+            <td><span class="transport-badge">${record.transportType || 'авто'}</span></td>
+            
+            <td style="font-weight:bold;">${record.rate} ${currencySymbol}</td>
+            <td>${formatDate(record.calculationDate)}</td>
+            <td><span class="${statusClass}">${statusText}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
+                    <button class="delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
         tableBody.appendChild(row);
     });
 
-// Добавляем обработчики для кнопок
+    // Навешивание обработчиков (как было)
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            openEditModal(id);
+            openEditModal(parseInt(this.getAttribute('data-id')));
         });
     });
-
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            deleteRecord(id);
-        });
-    });
-
-    document.querySelectorAll('.process-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            processRecord(id);
+            deleteRecord(parseInt(this.getAttribute('data-id')));
         });
     });
 }
 
+
+
 function renderPagination() {
     const pageInfo = document.querySelector('.pagination .page-info');
     const pageControls = document.querySelector('.pagination .page-controls');
-    if (!pageInfo || !pageControls) return;
+
+    // Находим сам контейнер пагинации (обычно это div с классом .pagination)
+    const paginationContainer = document.querySelector('.pagination');
+
+    if (!pageInfo || !pageControls || !paginationContainer) return;
+
+    // Если страниц всего 1 (или 0), скрываем всю панель пагинации
+    if (numPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    } else {
+        // Иначе показываем (важно вернуть display, если ранее скрыли)
+        paginationContainer.style.display = 'flex'; // или 'block', в зависимости от вашего CSS
+    }
 
     const start = (currentPage - 1) * PAGE_SIZE + 1;
     const end = Math.min(currentPage * PAGE_SIZE, totalRecords);
@@ -454,7 +511,7 @@ function renderPagination() {
 
     pageControls.innerHTML = '';
 
-// prev
+    // prev
     const prevBtn = document.createElement('button');
     prevBtn.className = 'page-btn';
     prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
@@ -464,7 +521,7 @@ function renderPagination() {
     });
     pageControls.appendChild(prevBtn);
 
-// page numbers (show up to 5 pages centered around current)
+    // page numbers
     const maxButtons = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
     let endPage = Math.min(numPages, startPage + maxButtons - 1);
@@ -476,16 +533,11 @@ function renderPagination() {
         const btn = document.createElement('button');
         btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
         btn.textContent = p;
-        btn.addEventListener('click', (() => {
-            const pageNum = p;
-            return function () {
-                loadRecords(pageNum);
-            };
-        })());
+        btn.addEventListener('click', () => loadRecords(p));
         pageControls.appendChild(btn);
     }
 
-// next
+    // next
     const nextBtn = document.createElement('button');
     nextBtn.className = 'page-btn';
     nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
@@ -495,6 +547,7 @@ function renderPagination() {
     });
     pageControls.appendChild(nextBtn);
 }
+
 
 function getStatusClass(status) {
     switch (status) {
@@ -541,12 +594,30 @@ function openEditModal(id) {
     editingRecordId = id;
     document.getElementById('modalTitle').textContent = 'Редактировать письмо';
 
+
 // Заполняем форму данными записи (берём camelCase поля, уже нормализованные при загрузке)
     document.getElementById('clientName').value = record.client_name || '';
     document.getElementById('clientEmail').value = record.email || '';
     document.getElementById('routeFrom').value = record.routeFrom || '';
     document.getElementById('routeTo').value = record.routeTo || '';
     document.getElementById('rate').value = (record.rate !== undefined && record.rate !== null) ? record.rate : '';
+    document.getElementById('containerType').value = record.containerType || '20ft';
+    document.getElementById('transportType').value = record.transportType || 'авто';
+
+    // Сброс кнопок
+    document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
+
+    // Визуально выделяем нужные карточки
+    highlightCard('containerOptionsGrid', record.containerType || '20ft');
+    highlightCard('transportOptionsGrid', record.transportType || 'авто');
+
+    // Установка валюты
+    const cur = record.currency || 'USD'; // Дефолт
+    document.getElementById('currency').value = cur;
+
+    // Подсветка нужной кнопки
+    const activeBtn = document.querySelector(`.currency-btn[data-value="${cur}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
 
 // calculationDate may be ISO datetime; ensure YYYY-MM-DD for <input type=date>
     let dateVal = record.calculationDate || record.input_date || '';
@@ -568,7 +639,15 @@ function clearModalForm() {
     document.getElementById('clientEmail').value = '';
     document.getElementById('routeFrom').value = '';
     document.getElementById('routeTo').value = '';
+
+    document.getElementById('containerType').value = '20ft';
+    document.getElementById('transportType').value = 'ж/д';
+    highlightCard('containerOptionsGrid', '20ft');
+    highlightCard('transportOptionsGrid', 'авто');
+
     document.getElementById('rate').value = '';
+    document.getElementById('currency').value = '';
+    document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'))
     document.getElementById('calculationDate').value = '';
     document.getElementById('processingStatus').value = 'pending';
     document.getElementById('comments').value = '';
@@ -583,33 +662,30 @@ function saveRecord() {
     const clientEmail = document.getElementById('clientEmail').value;
     const routeFrom = document.getElementById('routeFrom').value;
     const routeTo = document.getElementById('routeTo').value;
+    const containerType = document.getElementById('containerType').value;
+    const transportType = document.getElementById('transportType').value;
     const rate = document.getElementById('rate').value;
+    const currency = document.getElementById('currency').value;
     const calculationDate = document.getElementById('calculationDate').value;
 
     if (!clientName || !clientEmail || !routeFrom || !routeTo || !rate || !calculationDate) {
         alert('Пожалуйста, заполните все обязательные поля');
         return;
     }
-
-    const recordData = {
-        clientName,
-        clientEmail,
-        routeFrom,
-        routeTo,
-        rate,
-        calculationDate,
-        processingStatus: document.getElementById('processingStatus').value,
-        comments: document.getElementById('comments').value,
-        lastEditedBy: currentUser.email,
-        lastEditedAt: new Date().toLocaleString('ru-RU')
-    };
+    if (!currency) {
+        alert('Пожалуйста, выберите валюту (₽ или $)')
+        return;
+    }
 
     if (editingRecordId) {
         // Update existing record on server
         const payload = {
             origin_city: routeFrom,
             destination_city: routeTo,
+            container_type: document.getElementById('containerType').value,
+            transport_type: document.getElementById('transportType').value,
             rate: rate,
+            currency: currency,
             input_date: calculationDate,
             processing_status: document.getElementById('processingStatus').value,
             comments: document.getElementById('comments').value,
@@ -649,7 +725,10 @@ function saveRecord() {
             email: clientEmail,
             origin_city: routeFrom,
             destination_city: routeTo,
+            container_type: containerType,  // НОВОЕ
+            transport_type: transportType,
             rate: rate,
+            currency: currency,
             input_date: calculationDate,
             processing_status: document.getElementById('processingStatus').value,
             comments: document.getElementById('comments').value
@@ -779,4 +858,16 @@ ${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.las
             processRecord(id);
         });
     });
+}
+
+function highlightCard(gridId, value) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    // Сброс
+    grid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+
+    // Поиск и выделение
+    const target = grid.querySelector(`.option-card[data-value="${value}"]`);
+    if (target) target.classList.add('selected');
 }

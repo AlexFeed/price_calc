@@ -52,8 +52,8 @@
 }
 
 .option-icon img {
-    max-width: 40px;
-    max-height: 40px;
+    width: 40px;
+    height: 40px;
 }
 
 .option-card h3 {

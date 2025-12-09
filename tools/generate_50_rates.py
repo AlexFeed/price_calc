@@ -47,6 +47,7 @@ def main(n=50):
         dest = random.choice([c for c in cities if c != origin])
         cont = random.choice(containers)
         tr = random.choice(transports)
+        curr = random.choice(['USD', 'RUB'])
         rate_val = random_rate()
 
         # Случайный статус
@@ -66,6 +67,7 @@ def main(n=50):
             email=f'manager{i}@example.com', # Email менеджера
 
             rate=rate_val, # Значение ставки
+            currency=curr, # Валюта
             processing_status=processing_status, # Значение статуса обработки
             input_date=dt, # Значение даты
         )

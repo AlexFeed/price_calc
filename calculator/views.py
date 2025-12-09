@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django import forms
 from .models import Rate
+from django.db.models import Q
 from django.utils import timezone
 from statistics import median
 from datetime import timedelta
@@ -299,7 +300,8 @@ def records_api(request):
             email=payload.get('email', ''),               # Email
             origin_city=payload.get('origin_city') or payload.get('routeFrom', ''),
             destination_city=payload.get('destination_city') or payload.get('routeTo', ''),
-            rate=rate_val,
+            rate=rate_val, # Стоимость ставки
+            currency=payload.get('currency', 'USD'), # Валюта ставки
             input_date=dt,
             processing_status=payload.get('processing_status', 'pending'),
 
@@ -319,12 +321,27 @@ def records_api(request):
         page = int(request.GET.get('page', 1))
         page_size = int(request.GET.get('page_size', 10))
         status = request.GET.get('status')
+        search_query = request.GET.get('search', '').strip()  # Получаем поисковый запрос
 
-        qs = Rate.objects.order_by('-input_date')
-        if status:
+        # Базовая сортировка
+        qs = Rate.objects.order_by('-input_date', '-id')
+
+        # 1. Фильтрация по статусу
+        if status and status != 'all':
             qs = qs.filter(processing_status=status)
 
+        # 2. Глобальный поиск (по всей базе)
+        if search_query:
+            # Ищем совпадения в названии компании, email или городах
+            qs = qs.filter(
+                Q(client_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(origin_city__icontains=search_query) |
+                Q(destination_city__icontains=search_query)
+            )
+
         paginator = Paginator(qs, page_size)
+
         try:
             page_obj = paginator.page(page)
         except (EmptyPage, PageNotAnInteger):
@@ -341,6 +358,7 @@ def records_api(request):
                 'container_type': r.container_type,
                 'transport_type': r.transport_type,
                 'rate': float(r.rate),
+                'currency': r.currency,
                 'input_date': r.input_date.isoformat(),
                 'processing_status': r.processing_status,
                 'last_edited_by': r.last_edited_by,
@@ -378,6 +396,7 @@ def record_detail_api(request, record_id):
             'container_type': r.container_type,
             'transport_type': r.transport_type,
             'rate': float(r.rate),
+            'currency': r.currency,
             'input_date': r.input_date.isoformat(),
             'calculationDate': r.input_date.isoformat(),
             'processing_status': r.processing_status,
@@ -410,7 +429,16 @@ def record_detail_api(request, record_id):
         if 'email' in payload:
             r.email = payload['email']
 
-        # Остальные поля (без изменений логики)
+        if 'currency' in payload:
+            r.currency = payload['currency']
+
+        if 'container_type' in payload:
+            r.container_type = payload['container_type']
+        if 'transport_type' in payload:
+            r.transport_type = payload['transport_type']
+
+
+    # Остальные поля (без изменений логики)
         origin = payload.get('origin_city') or payload.get('routeFrom')
         dest = payload.get('destination_city') or payload.get('routeTo')
         if origin: r.origin_city = origin

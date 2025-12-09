@@ -8,6 +8,12 @@ class Rate(models.Model):
     transport_type = models.CharField(max_length=100)
     client_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Имя клиента")
 
+    CURRENCY_CHOICES = [
+        ('USD', '$'),
+        ('RUB', '₽')
+    ]
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD', verbose_name="Валюта")
+
     # processing status: correct / incorrect / pending
     PROCESSING_STATUS_CHOICES = [
         ('correct', 'Корректно'),
