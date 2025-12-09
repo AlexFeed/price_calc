@@ -449,7 +449,7 @@ function renderRecords(recordsToRender) {
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><strong>${record.clientName || '-'}</strong></td>
+            <td class="important-column">${record.clientName || '-'}</td>
             <td>
                 ${record.clientEmail || '-'}
                 ${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.lastEditedBy}</div>` : ''}
@@ -459,13 +459,13 @@ function renderRecords(recordsToRender) {
             <td>${record.containerType || '20ft'}</td>
             <td><span class="transport-badge">${record.transportType || 'авто'}</span></td>
             
-            <td style="font-weight:bold;">${record.rate} ${currencySymbol}</td>
+            <td class="important-column">${record.rate} ${currencySymbol}</td>
             <td>${formatDate(record.calculationDate)}</td>
             <td><span class="${statusClass}">${statusText}</span></td>
             <td>
                 <div class="action-buttons">
-                    <button class="edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
-                    <button class="delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
                 </div>
             </td>
         `;
@@ -478,6 +478,7 @@ function renderRecords(recordsToRender) {
             openEditModal(parseInt(this.getAttribute('data-id')));
         });
     });
+
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function () {
             deleteRecord(parseInt(this.getAttribute('data-id')));
@@ -762,102 +763,29 @@ function saveRecord() {
 }
 
 function deleteRecord(id) {
-    if (confirm('Вы уверены, что хотите удалить это письмо?')) {
-        records = records.filter(r => r.id !== id);
-        localStorage.setItem('mailRecords', JSON.stringify(records));
-        loadRecords(currentPage);
-    }
-}
+    if (!confirm('Вы уверены, что хотите удалить это письмо?')) return;
 
-function processRecord(id) {
-    alert(`Переход к обработке письма с ID: ${id}`);
-// В реальном приложении здесь будет переход на страницу обработки письма
-}
-
-function filterRecords() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('statusFilter').value;
-
-    let filteredRecords = records.filter(record =>
-        record.client.toLowerCase().includes(searchTerm) ||
-        record.routeFrom.toLowerCase().includes(searchTerm) ||
-        record.routeTo.toLowerCase().includes(searchTerm)
-    );
-
-    if (statusFilter !== 'all') {
-        filteredRecords = filteredRecords.filter(record => record.processingStatus === statusFilter);
-    }
-
-    const tableBody = document.getElementById('recordsTableBody');
-    tableBody.innerHTML = '';
-
-    if (filteredRecords.length === 0) {
-        tableBody.innerHTML = `
-<tr>
-<td colspan="7">
-<div class="empty-state">
-<i class="fas fa-search"></i>
-<h3>Письма не найдены</h3>
-<p>Попробуйте изменить условия поиска</p>
-</div>
-</td>
-</tr>
-`;
-        return;
-    }
-
-    filteredRecords.forEach(record => {
-        const statusClass = getStatusClass(record.processingStatus);
-        const statusText = getStatusText(record.processingStatus);
-        const row = document.createElement('tr');
-        row.innerHTML = `
-                <td>${record.id}</td>
-                                  <td>
-${record.client}
-${record.lastEditedBy ? `<div class="last-edited">Изменено: ${record.lastEditedBy}</div>` : ''}
-</td>
-  <td>${record.routeFrom} → ${record.routeTo}</td>
-                                               <td>${record.rate} $</td>
-                                                                     <td>${formatDate(record.calculationDate)}</td>
-                                                                                                                <td><span class="${statusClass}">${statusText}</span></td>
-<td>
-<div class="action-buttons">
-<button class="edit-btn" data-id="${record.id}">
-<i class="fas fa-edit"></i>
-</button>
-<button class="process-btn" data-id="${record.id}">
-<i class="fas fa-cog"></i>
-</button>
-<button class="delete-btn" data-id="${record.id}">
-<i class="fas fa-trash"></i>
-</button>
-</div>
-</td>
-`;
-        tableBody.appendChild(row);
-    });
-
-// Добавляем обработчики для кнопок
-    document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            openEditModal(id);
+    fetch(`/manage/api/records/${id}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.ok) {
+                loadRecords(currentPage);
+                if (records.length === 1 && currentPage > 1) {
+                    loadRecords(currentPage - 1);
+                }
+            } else {
+                alert('Не удалось удалить запись');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Ошибка сети');
         });
-    });
-
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            deleteRecord(id);
-        });
-    });
-
-    document.querySelectorAll('.process-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = parseInt(this.getAttribute('data-id'));
-            processRecord(id);
-        });
-    });
 }
 
 function highlightCard(gridId, value) {

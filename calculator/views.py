@@ -302,14 +302,11 @@ def records_api(request):
             destination_city=payload.get('destination_city') or payload.get('routeTo', ''),
             rate=rate_val, # Стоимость ставки
             currency=payload.get('currency', 'USD'), # Валюта ставки
-            input_date=dt,
-            processing_status=payload.get('processing_status', 'pending'),
-
-            # Дефолтные значения (можно будет добавить в форму позже)
-            container_type=payload.get('container_type', '20ft'),
-            transport_type=payload.get('transport_type', 'авто'),
-
-            last_edited_by=request.user.email
+            input_date=dt, # Дата расчёта ставки
+            processing_status=payload.get('processing_status', 'pending'), # Статус отправки
+            container_type=payload.get('container_type', '20ft'), # Тип контейнера
+            transport_type=payload.get('transport_type', 'авто'),  # Тип транспорта
+            last_edited_by=request.user.email # Email того, кто добавил запись
         )
 
         # Возвращаем ID созданной записи
@@ -376,7 +373,7 @@ def records_api(request):
 
 
 def record_detail_api(request, record_id):
-    """Return or update a single Rate record as JSON (by id)."""
+    """Return or update or delete a single Rate record as JSON (by id)."""
 
     # GET -> return record
     if request.method == 'GET':
@@ -438,7 +435,6 @@ def record_detail_api(request, record_id):
             r.transport_type = payload['transport_type']
 
 
-    # Остальные поля (без изменений логики)
         origin = payload.get('origin_city') or payload.get('routeFrom')
         dest = payload.get('destination_city') or payload.get('routeTo')
         if origin: r.origin_city = origin
@@ -456,6 +452,7 @@ def record_detail_api(request, record_id):
         if input_date:
             try:
                 dt = parse_datetime(input_date)
+                # Убираем время из даты для корректной записи в бд
                 if dt: r.input_date = dt
             except:
                 pass
@@ -470,6 +467,17 @@ def record_detail_api(request, record_id):
 
         r.save()
         return JsonResponse({'status': 'ok'})
+
+    # DELETE -> удалить запись
+    if request.method == 'DELETE':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'auth required'}, status=403)
+        try:
+            r = Rate.objects.get(pk=record_id)
+            r.delete()
+            return JsonResponse({'status': 'deleted'})
+        except Rate.DoesNotExist:
+            return JsonResponse({'error': 'not found'}, status=404)
 
     return JsonResponse({'error': 'method not allowed'}, status=405)
 

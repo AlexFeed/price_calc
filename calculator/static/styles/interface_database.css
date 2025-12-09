@@ -519,6 +519,10 @@ header {
     flex: 1;
 }
 
+.important-column {
+    font-weight: bold;
+}
+
 .modal-footer {
     display: flex;
     justify-content: flex-end;

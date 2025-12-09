@@ -25,7 +25,7 @@ class Rate(models.Model):
     last_edited_by = models.EmailField(blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     rate = models.DecimalField(max_digits=12, decimal_places=2)
-    input_date = models.DateTimeField()
+    input_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
