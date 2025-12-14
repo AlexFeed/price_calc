@@ -80,12 +80,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // letters button navigates to manage page
-    const lettersBtn = document.getElementById('lettersBtn');
-    if (lettersBtn) lettersBtn.addEventListener('click', () => {
-        window.location.href = '/manage/';
-    });
-
     const notificationBtn = document.getElementById('notificationBtn');
     const notificationDropdown = document.getElementById('notificationDropdown');
     if (notificationBtn) {
