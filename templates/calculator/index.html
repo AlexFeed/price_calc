@@ -7,7 +7,6 @@
     <title>Калькулятор цен</title>
     <link rel="stylesheet" href="{% static 'styles/atk_styles.css' %}">
     <link rel="stylesheet" href="{% static 'styles/index.css' %}">
-    <script src="{% static 'js_scripts/index.js' %}"></script>
 </head>
 <body>
     <header>
@@ -163,15 +162,11 @@
                 <input type="hidden" id="transport_type" name="transport_type" value="" class="hidden-input">
 
 
-                <button class="submit-btn" type="submit">Посчитать</button>
+                <button class="submit-btn" type="submit">Рассчитать стоимость</button>
             </form>
 
             <div class="result-container" id="resultContainer">
-                <div class="result-title">Результаты поиска</div>
-                <div id="resultsSummary" class="results-summary-text"></div>
-                <div id="resultsTableContainer">
-                    <!-- таблица результатов будет вставлена сюда -->
-                </div>
+                <div id="resultsTableContainer"></div>
             </div>
         </div>
     </div>
@@ -179,5 +174,6 @@
     <footer>
         <div class="copyright">&copy; АТК. Все права защищены.</div>
     </footer>
+    <script src="{% static 'js_scripts/index.js' %}?v={% now "U" %}"></script>
 </body>
 </html>

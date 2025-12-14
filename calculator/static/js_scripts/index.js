@@ -99,18 +99,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Intercept calculator form and load results into the in-page container
     const calcForm = document.querySelector('form');
-    const resultContainer = document.getElementById('resultContainer');
-    const resultsSummary = document.getElementById('resultsSummary');
-    const resultsTableContainer = document.getElementById('resultsTableContainer');
+
+    // ПРОВЕРЬТЕ: Добавьте эту строку для отладки
+    console.log('Форма найдена:', calcForm);
 
     if (calcForm) {
         calcForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            const formData = new FormData(calcForm);
-            // include checkbox boolean as presence
-            if (!formData.get('include_all_dates')) {
-                // ensure falsey or absent; backend treats absence as false
+
+            // Находим элементы ДО их использования
+            const resultContainer = document.getElementById('resultContainer');
+            const resultsTableContainer = document.getElementById('resultsTableContainer');
+
+            // Проверяем, что элементы существуют
+            if (!resultContainer || !resultsTableContainer) {
+                console.error('Не найдены элементы:', {
+                    resultContainer: !!resultContainer,
+                    resultsTableContainer: !!resultsTableContainer
+                });
+                return;
             }
+
+            // Validate required fields: origin, destination, container and transport
+            const origin = document.getElementById('origin').value.trim();
+            const destination = document.getElementById('destination').value.trim();
+            const container = document.getElementById('container_type').value.trim();
+            const transport = document.getElementById('transport_type').value.trim();
+
+            const missing = [];
+            if (!origin) missing.push('Откуда');
+            if (!destination) missing.push('Куда');
+            if (!container) missing.push('Тип контейнера');
+            if (!transport) missing.push('Тип транспорта');
+
+            if (missing.length > 0) {
+                resultsTableContainer.innerHTML = `<div style="color:var(--darkyellow); text-align:center;">Пожалуйста, заполните: ${missing.join(', ')}</div>`;
+                resultContainer.style.display = 'block';
+                resultContainer.scrollIntoView({behavior: 'smooth'});
+                return;
+            }
+
+            const formData = new FormData(calcForm);
+
+            console.log('Отправляем данные:', {
+                origin, destination, container, transport,
+                formData: Object.fromEntries(formData.entries())
+            });
 
             fetch('/calculator/api/calc/', {
                 method: 'POST',
@@ -120,38 +154,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: formData
             })
-                .then(r => r.ok ? r.json() : r.json().then(j => {
-                    throw j;
-                }))
-                .then(data => {
-                    // render stats
-                    const stats = data.stats;
-                    if (stats) {
-                        resultsSummary.innerHTML = `<strong>Найдено ставок:</strong> ${stats.count || 0}`;
-                    } else {
-                        resultsSummary.innerHTML = '<span style="color:var(--dark-gray);">По выбранным критериям ставок не найдено.</span>';
+                .then(r => {
+                    console.log('Статус ответа:', r.status);
+                    if (!r.ok) {
+                        return r.json().then(err => { throw err; });
                     }
+                    return r.json();
+                })
+                .then(data => {
+                    console.log('Получены данные:', data);
 
-                    // render table
-                    const rates = data.rates || [];
-                    if (rates.length === 0) {
-                        resultsTableContainer.innerHTML = '<div style="color:var(--dark-gray);">Нет записей для отображения.</div>';
+                    // show only the rate and responsible manager
+                    const latest = data.latest || (data.rates && data.rates.length ? data.rates[0] : null);
+                    if (!latest) {
+                        resultsTableContainer.innerHTML = '<div style="color:#333;">Нет записей для отображения.</div>';
                     } else {
-                        let html = '<table style="width:100%; border-collapse:collapse;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Дата</th><th>Откуда</th><th>Куда</th><th>Контейнер</th><th>Транспорт</th><th>Email</th><th>Тариф</th></tr></thead><tbody>';
-                        rates.forEach(r => {
-                            html += `<tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">${r.input_date}</td><td style="padding:8px 4px;">${r.origin_city}</td><td style="padding:8px 4px;">${r.destination_city}</td><td style="padding:8px 4px;">${r.container_type}</td><td style="padding:8px 4px;">${r.transport_type}</td><td style="padding:8px 4px;">${r.email || '—'}</td><td style="padding:8px 4px; font-weight:600;">${r.rate}</td></tr>`;
-                        });
-                        html += '</tbody></table>';
-                        resultsTableContainer.innerHTML = html;
+                        resultsTableContainer.innerHTML = `
+                            <div style="text-align:center;">
+                                <div style="font-size:22px; color:#333; margin-bottom:8px;">
+                                    Расчетная стоимость: 
+                                    <strong style="font-size:28px; color:#111;">
+                                        ${latest.rate} ${latest.currency === 'RUB' ? '₽' : '$'}
+                                    </strong>
+                                </div>
+                                <div style="font-size:18px; color:#333; margin-bottom:15px">
+                                    Ответственный менеджер: <strong style="font-size:18px;">${latest.manager || '—'}</strong>
+                                </div>
+                            </div>
+                        `;
                     }
 
                     resultContainer.style.display = 'block';
-                    // scroll into view
                     resultContainer.scrollIntoView({behavior: 'smooth'});
                 })
                 .catch(err => {
-                    resultsSummary.innerHTML = '<span style="color:var(--red);">Ошибка при запросе результатов</span>';
-                    resultsTableContainer.innerHTML = '';
+                    console.error('Ошибка при запросе:', err);
+                    resultsTableContainer.innerHTML = '<div style="color:var(--red); text-align:center;">Ошибка при запросе результатов</div>';
                     resultContainer.style.display = 'block';
                 });
         });

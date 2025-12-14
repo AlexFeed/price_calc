@@ -111,8 +111,7 @@ def calc_api(request):
     dest = request.POST.get('destination_city') or request.GET.get('destination_city')
     container = request.POST.get('container_type') or request.GET.get('container_type')
     transport = request.POST.get('transport_type') or request.GET.get('transport_type')
-    include_all = request.POST.get('include_all_dates') or request.POST.get('include_all') or request.GET.get(
-        'include_all')
+    include_all = request.POST.get('include_all_dates') or request.POST.get('include_all') or request.GET.get('include_all')
 
     qs = Rate.objects.all()
     if origin:
@@ -129,22 +128,27 @@ def calc_api(request):
         qs = qs.filter(input_date__gte=since)
 
     stats = compute_stats(qs)
-    rates_list = qs.order_by('-input_date')[:200]
 
+    # return only the newest matching rate (most recent input_date)
+    latest_obj = qs.order_by('-input_date').first()
     records = []
-    for r in rates_list:
+    if latest_obj:
         records.append({
-            'id': r.id,
-            'input_date': r.input_date.strftime('%Y-%m-%d %H:%M'),
-            'origin_city': r.origin_city,
-            'destination_city': r.destination_city,
-            'container_type': r.container_type,
-            'transport_type': r.transport_type,
-            'email': r.email,
-            'rate': float(r.rate),
+            'id': latest_obj.id,
+            'input_date': latest_obj.input_date.strftime('%Y-%m-%d %H:%M'),
+            'origin_city': latest_obj.origin_city,
+            'destination_city': latest_obj.destination_city,
+            'container_type': latest_obj.container_type,
+            'transport_type': latest_obj.transport_type,
+            'email': latest_obj.email,
+            'rate': float(latest_obj.rate),
+            'manager': latest_obj.last_edited_by,
+            'currency': latest_obj.currency
         })
 
-    return JsonResponse({'stats': stats, 'rates': records})
+    latest_record = records[0] if records else None
+    # return stats plus the single latest record; keep 'rates' for backward compatibility
+    return JsonResponse({'stats': stats, 'latest': latest_record, 'rates': records})
 
 
 def atk_home(request):
