@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const destination = document.getElementById('destination').value.trim();
             const container = document.getElementById('container_type').value.trim();
             const transport = document.getElementById('transport_type').value.trim();
+            const processing_status = 'correct';
 
             const missing = [];
             if (!origin) missing.push('Откуда');
@@ -142,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const formData = new FormData(calcForm);
 
             console.log('Отправляем данные:', {
-                origin, destination, container, transport,
+                origin, destination, container, transport, processing_status,
                 formData: Object.fromEntries(formData.entries())
             });
 
@@ -165,7 +166,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('Получены данные:', data);
 
                     // show only the rate and responsible manager
-                    const latest = data.latest || (data.rates && data.rates.length ? data.rates[0] : null);
+                    const latest = (data.latest && data.latest.status === 'correct') 
+                    ? data.latest 
+                    : (data.rates && data.rates.length > 0 ? data.rates.find(rate => rate.status === 'correct') : null);
                     if (!latest) {
                         resultsTableContainer.innerHTML = '<div style="color:#333;">Нет записей для отображения.</div>';
                     } else {

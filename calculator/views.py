@@ -143,7 +143,8 @@ def calc_api(request):
             'email': latest_obj.email,
             'rate': float(latest_obj.rate),
             'manager': latest_obj.last_edited_by,
-            'currency': latest_obj.currency
+            'currency': latest_obj.currency,
+            'processing_status': latest_obj.processing_status
         })
 
     latest_record = records[0] if records else None
