@@ -57,6 +57,7 @@ header {
     justify-content: center;
     color: var(--primary-yellow);
     font-weight: bold;
+    text-decoration: none;
 }
 
 .user-info {
@@ -270,6 +271,7 @@ header {
     align-items: center;
     gap: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    text-decoration: none;
 }
 
 .add-btn:hover {

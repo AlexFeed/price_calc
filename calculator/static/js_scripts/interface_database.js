@@ -57,11 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data && !data.error) {
                 currentUser = {id: data.id, email: data.email, name: data.name};
                 showDashboard();
-// enable calculator button
-                const btn = document.getElementById('openCalcBtn');
-                if (btn) btn.addEventListener('click', () => {
-                    window.location.href = '/calculator/';
-                });
             }
         })
         .catch(() => {
@@ -161,15 +156,17 @@ document.addEventListener('DOMContentLoaded', function () {
 function switchToLogin() {
     document.getElementById('loginTab').classList.add('active');
     document.getElementById('registerTab').classList.remove('active');
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
+
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
 }
 
 function switchToRegister() {
     document.getElementById('registerTab').classList.add('active');
     document.getElementById('loginTab').classList.remove('active');
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
+
+    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('loginForm').classList.add('hidden');
 }
 
 function handleLogin() {
