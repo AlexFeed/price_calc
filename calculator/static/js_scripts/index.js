@@ -166,9 +166,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('Получены данные:', data);
 
                     // show only the rate and responsible manager
-                    const latest = (data.latest && data.latest.status === 'correct') 
+                    const latest = (data.latest && data.latest.processing_status === 'correct') 
                     ? data.latest 
-                    : (data.rates && data.rates.length > 0 ? data.rates.find(rate => rate.status === 'correct') : null);
+                    : (data.rates && data.rates.length ? data.rates.find(rate => rate.processing_status === 'correct') || null : null);
                     if (!latest) {
                         resultsTableContainer.innerHTML = '<div style="color:#333;">Нет записей для отображения.</div>';
                     } else {
