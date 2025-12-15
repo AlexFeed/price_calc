@@ -5,8 +5,8 @@
     --dark-gray: #424242;
     --light-gray: #F5F5F5;
     --white: #FFFFFF;
-    --red: #FF5252;
-    --green: #4CAF50;
+    --red: #CC3300;
+    --green: #66CC00;
     --blue: #2196F3;
 }
 
@@ -15,6 +15,10 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#userEmailDisplay {
+    color: var(--primary-yellow)
 }
 
 body {
@@ -27,7 +31,7 @@ body {
 
 /* Header */
 header {
-    background-color: var(--primary-yellow);
+    background-color: var(--black);
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
@@ -43,19 +47,19 @@ header {
 .logo h1 {
     font-size: 24px;
     font-weight: bold;
-    color: var(--black);
+    color: var(--primary-yellow);
     margin-left: 10px;
 }
 
 .logo-icon {
     width: 40px;
     height: 40px;
-    background-color: var(--black);
+    background-color: var(--primary-yellow);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary-yellow);
+    color: var(--black);
     font-weight: bold;
     text-decoration: none;
 }
@@ -69,19 +73,19 @@ header {
 .user-avatar {
     width: 40px;
     height: 40px;
-    background-color: var(--black);
+    background-color: var(--primary-yellow);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary-yellow);
+    color: var(--black);
     font-weight: bold;
 }
 
 .logout-btn {
     background: none;
     border: none;
-    color: var(--black);
+    color: var(--primary-yellow);
     cursor: pointer;
     font-size: 14px;
     display: flex;
@@ -299,8 +303,8 @@ header {
 }
 
 .data-table th {
-    background-color: var(--primary-yellow);
-    color: var(--black);
+    background-color: var(--black);
+    color: var(--white);
     padding: 15px 20px;
     text-align: left;
     font-weight: 600;

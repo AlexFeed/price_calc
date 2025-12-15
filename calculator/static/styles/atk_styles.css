@@ -1,12 +1,12 @@
 
 :root {
-    --primary-yellow: #FFCC00;
+    --primary-yellow: #5d00ff;
     --dark-yellow: #E6B800;
     --black: #212121;
     --dark-gray: #424242;
     --light-gray: #F5F5F5;
     --white: #FFFFFF;
-    --red: #FF5252;
+    --red: #CC3300;
 }
 
 * {
@@ -22,7 +22,7 @@ body {
 }
 
 header {
-    background-color: var(--primary-yellow);
+    background-color: var(--black);
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
@@ -38,19 +38,19 @@ header {
 .logo h1 {
     font-size: 24px;
     font-weight: bold;
-    color: var(--black);
+    color: var(--primary-yellow);
     margin-left: 10px;
 }
 
 .logo-icon {
     width: 40px;
     height: 40px;
-    background-color: var(--black);
+    background-color: var(--primary-yellow);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary-yellow);
+    color: var(--black);
     font-weight: bold;
     text-decoration: none;
 }
@@ -62,8 +62,8 @@ header {
 }
 
 .letters-btn {
-    background-color: var(--black);
-    color: var(--white);
+    background-color: var(--primary-yellow);
+    color: var(--black);
     border: none;
     padding: 10px 20px;
     font-size: 14px;
@@ -78,7 +78,7 @@ header {
 }
 
 .letters-btn:hover {
-    background-color: var(--dark-gray);
+    background-color: var(--dark-yellow);
 }
 
 .notification-container {
@@ -86,8 +86,8 @@ header {
 }
 
 .notification-btn {
-    background-color: var(--black);
-    color: var(--white);
+    background-color: var(--primary-yellow);
+    color: var(--black);
     border: none;
     width: 40px;
     height: 40px;
@@ -107,7 +107,7 @@ header {
     height: 18px;
     background-color: var(--red);
     border-radius: 50%;
-    color: white;
+    color: rgb(0, 0, 0);
     font-size: 10px;
     display: flex;
     align-items: center;
@@ -212,7 +212,7 @@ header {
 .form-group input, .form-group select {
     width: 100%;
     padding: 12px 15px;
-    border: 1px solid #ddd;
+    border: 3px solid #eee;
     border-radius: 8px;
     font-size: 16px;
     transition: border 0.3s;

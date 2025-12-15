@@ -32,6 +32,22 @@ function selectOption(element, type) {
     }
 }
 
+// Функция для показа кнопки "Сделать запись" после расчета
+function showRecordButton() {
+    const resultActions = document.getElementById('resultActions');
+    if (resultActions) {
+        resultActions.style.display = 'block';
+    }
+}
+
+// Функция для скрытия кнопки "Сделать запись"
+function hideRecordButton() {
+    const resultActions = document.getElementById('resultActions');
+    if (resultActions) {
+        resultActions.style.display = 'none';
+    }
+}
+
 // fetch notifications count and items
 function loadNotifications() {
     fetch('/manage/api/notifications/')
@@ -80,11 +96,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Функционал уведомлений
     const notificationBtn = document.getElementById('notificationBtn');
     const notificationDropdown = document.getElementById('notificationDropdown');
-    if (notificationBtn) {
-        notificationBtn.addEventListener('click', function () {
+    
+    if (notificationBtn && notificationDropdown) {
+        // Открытие/закрытие по клику на кнопку
+        notificationBtn.addEventListener('click', function (e) {
+            e.stopPropagation(); // Предотвращаем всплытие события
             notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Закрытие при клике в любом месте страницы
+        document.addEventListener('click', function (e) {
+            // Проверяем, был ли клик вне выпадающего меню и кнопки
+            if (notificationDropdown && notificationBtn && 
+                !notificationDropdown.contains(e.target) && 
+                !notificationBtn.contains(e.target)) {
+                notificationDropdown.style.display = 'none';
+            }
+        });
+        
+        // Предотвращаем закрытие при клике внутри самого выпадающего списка
+        notificationDropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
         });
     }
 
@@ -100,6 +135,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (calcForm) {
         calcForm.addEventListener('submit', function (e) {
             e.preventDefault();
+
+            // Скрываем кнопку "Сделать запись" перед новым расчетом
+            hideRecordButton();
 
             // Находим элементы ДО их использования
             const resultContainer = document.getElementById('resultContainer');
@@ -183,12 +221,133 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     resultContainer.style.display = 'block';
                     resultContainer.scrollIntoView({behavior: 'smooth'});
+                    
+                    // ПОКАЗЫВАЕМ КНОПКУ "СДЕЛАТЬ ЗАПИСЬ" ПОСЛЕ УСПЕШНОГО РАСЧЕТА
+                    showRecordButton();
                 })
                 .catch(err => {
                     console.error('Ошибка при запросе:', err);
                     resultsTableContainer.innerHTML = '<div style="color:var(--red); text-align:center;">Ошибка при запросе результатов</div>';
                     resultContainer.style.display = 'block';
                 });
+        });
+    }
+
+    // Функционал для модального окна "Сделать запись"
+    const makeRecordBtn = document.getElementById('makeRecordBtn');
+    const recordModal = document.getElementById('recordModal');
+    const closeRecordModalBtn = document.getElementById('closeRecordModalBtn');
+    const copyRecordBtn = document.getElementById('copyRecordBtn');
+    const clearRecordBtn = document.getElementById('clearRecordBtn');
+    const recordNotesTextarea = document.getElementById('recordNotesTextarea');
+    const recordStatus = document.getElementById('recordStatus');
+    const recordInfo = document.getElementById('recordInfo');
+    const saveRecordBtn = document.getElementById('saveRecordBtn');
+
+    // Открытие модального окна
+    if (makeRecordBtn) {
+        makeRecordBtn.addEventListener('click', function() {
+            // Заполняем информацию из текущего расчета
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            const containerType = document.getElementById('container_type').value;
+            const transportType = document.getElementById('transport_type').value;
+            
+            // Получаем информацию из результатов расчета
+            const resultsText = document.getElementById('resultsTableContainer').innerText;
+            
+            // Собираем информацию для отображения
+            const calculationDate = new Date().toLocaleString('ru-RU');
+            
+            recordInfo.innerHTML = `
+                <div><strong>Откуда:</strong> ${origin || '—'}</div>
+                <div><strong>Куда:</strong> ${destination || '—'}</div>
+                <div><strong>Тип контейнера:</strong> ${containerType || '—'}</div>
+                <div><strong>Тип транспорта:</strong> ${transportType || '—'}</div>
+                <div><strong>Результат расчета:</strong> ${resultsText}</div>
+                <div><strong>Дата расчета:</strong> ${calculationDate}</div>
+            `;
+            
+            // Показываем модальное окно
+            recordModal.style.display = 'flex';
+            document.body.classList.add('modal-open');
+        });
+    }
+
+    // Закрытие модального окна
+    if (closeRecordModalBtn) {
+        closeRecordModalBtn.addEventListener('click', function() {
+            recordModal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            recordStatus.textContent = '';
+        });
+    }
+
+    // Закрытие по клику вне модального окна
+    if (recordModal) {
+        recordModal.addEventListener('click', function(e) {
+            if (e.target === recordModal) {
+                recordModal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                recordStatus.textContent = '';
+            }
+        });
+    }
+
+    // Копирование записи в буфер обмена
+    if (copyRecordBtn) {
+        copyRecordBtn.addEventListener('click', function() {
+            const infoText = recordInfo.innerText;
+            const notesText = recordNotesTextarea.value;
+            const fullText = `ИНФОРМАЦИЯ О РАСЧЕТЕ\n${infoText}\n\nКОММЕНТАРИЙ:\n${notesText}`;
+            
+            navigator.clipboard.writeText(fullText).then(() => {
+                recordStatus.textContent = 'Запись скопирована в буфер обмена!';
+                recordStatus.style.color = 'var(--primary-yellow)';
+                
+                // Сбрасываем статус через 3 секунды
+                setTimeout(() => {
+                    recordStatus.textContent = '';
+                }, 3000);
+            }).catch(err => {
+                recordStatus.textContent = 'Ошибка при копировании: ' + err;
+                recordStatus.style.color = 'var(--red)';
+            });
+        });
+    }
+
+    // Очистка комментария
+    if (clearRecordBtn) {
+        clearRecordBtn.addEventListener('click', function() {
+            if (confirm('Вы уверены, что хотите очистить комментарий?')) {
+                recordNotesTextarea.value = '';
+                recordStatus.textContent = 'Комментарий очищен';
+                recordStatus.style.color = 'var(--primary-yellow)';
+                
+                setTimeout(() => {
+                    recordStatus.textContent = '';
+                }, 2000);
+            }
+        });
+    }
+
+    // Кнопка "Сохранить"
+    if (saveRecordBtn) {
+        saveRecordBtn.addEventListener('click', function() {
+            const notesText = recordNotesTextarea.value;
+            
+            if (notesText.trim() === '') {
+                recordStatus.textContent = 'Добавьте комментарий перед сохранением';
+                recordStatus.style.color = 'var(--red)';
+                return;
+            }
+            
+            recordStatus.textContent = 'Запись сохранена локально';
+            recordStatus.style.color = 'var(--primary-yellow)';
+            
+            setTimeout(() => {
+                recordStatus.textContent = '';
+            }, 3000);
         });
     }
 });

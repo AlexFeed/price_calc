@@ -5,7 +5,7 @@
     --dark-gray: #424242;
     --light-gray: #F5F5F5;
     --white: #FFFFFF;
-    --red: #FF5252;
+    --red: #df3800;
 }
 
 .options-title {
@@ -22,7 +22,7 @@
 
 .option-card {
     flex: 1;
-    border: 2px solid #eee;
+    border: 3px solid #eee;
     border-radius: 10px;
     padding: 20px;
     text-align: center;
@@ -74,11 +74,31 @@
     position: absolute;
     top: 5px;
     right: 5px;
-    width: 8px;
-    height: 8px;
-    background-color: var(--primary-yellow);
+    width: 30px;
+    height: 30px;
+    background-color: #42424234;
     border-radius: 50%;
     display: none;
+    cursor: pointer;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    line-height: 30px;
+    text-align: center;
+    /* Добавляем плавный переход */
+    transition: all 0.3s ease;
+    /* Фиксируем центр трансформации */
+    transform-origin: center;
+}
+
+.option-indicator:hover {
+    /* Увеличиваем на 20% */
+    transform: scale(1.2);
+    /* Можно также усилить цвет при наведении */
+    background-color: #42424251;
+    /* Увеличиваем текст немного */
+    font-size: 15px;
 }
 
 .option-card {
@@ -170,4 +190,328 @@
 .results-summary-text {
     margin-bottom: 12px;
     color: var(--dark-gray);
+}
+
+/* Стили для кнопки "Сделать запись" и модального окна */
+.result-actions {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.make-record-btn {
+    background-color: var(--primary-yellow);
+    color: var(--black);
+    border: 2px solid var(--dark-yellow);
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.make-record-btn:hover {
+    background-color: var(--dark-yellow);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 184, 0, 0.2);
+}
+
+.make-record-btn:active {
+    transform: translateY(0);
+}
+
+/* Модальное окно для записи */
+.record-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.record-modal-content {
+    background-color: var(--white);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.record-modal-header {
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--black);
+    border-radius: 12px 12px 0 0;
+}
+
+.record-modal-header h3 {
+    margin: 0;
+    color: var(--primary-yellow);
+    font-size: 20px;
+}
+
+.close-record-modal-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--light-gray);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.close-record-modal-btn:hover {
+    background-color: rgba(172, 172, 172, 0.1);
+    color: var(--white);
+}
+
+.record-modal-body {
+    padding: 24px;
+}
+
+/* Секция с информацией из письма */
+.record-info-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.record-info-section h4 {
+    margin: 0 0 16px 0;
+    color: var(--black);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.record-info {
+    background-color: var(--light-gray);
+    border-radius: 8px;
+    padding: 18px;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.record-info div {
+    margin-bottom: 8px;
+    display: flex;
+}
+
+.record-info div:last-child {
+    margin-bottom: 0;
+}
+
+.record-info strong {
+    color: var(--dark-gray);
+    min-width: 140px;
+    display: inline-block;
+}
+
+/* Секция для комментариев */
+.record-notes-section {
+    margin-bottom: 24px;
+}
+
+.record-notes-section h4 {
+    margin: 0 0 12px 0;
+    color: var(--black);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.record-notes-textarea {
+    width: 100%;
+    height: 150px;
+    padding: 16px;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+    background-color: var(--light-gray);
+}
+
+.record-notes-textarea:focus {
+    outline: none;
+    border-color: var(--primary-yellow);
+    background-color: var(--white);
+}
+
+.record-notes-textarea::placeholder {
+    color: var(--dark-gray);
+    opacity: 0.7;
+}
+
+/* Кнопки действий */
+.record-modal-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.record-modal-actions button {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.copy-record-btn {
+    background-color: var(--primary-yellow);
+    color: var(--black);
+    border-color: var(--dark-gray);
+}
+
+.copy-record-btn:hover {
+    background-color: var(--dark-yellow);
+    border-color: var(--black);
+    transform: translateY(-2px);
+}
+
+.save-record-btn {
+    background-color: var(--primary-yellow);
+    color: var(--black);
+    border-color: var(--dark-yellow);
+}
+
+.save-record-btn:hover {
+    background-color: var(--dark-yellow);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 184, 0, 0.2);
+}
+
+.clear-record-btn {
+    background-color: var(--primary-yellow);
+    color: var(--black);
+    border-color: var(--dark-yellow);
+}
+
+.clear-record-btn:hover {
+    background-color: #e44d27;
+    border-color: #711e09;
+    transform: translateY(-2px);
+}
+
+/* Статусное сообщение */
+.record-status {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+    min-height: 20px;
+    transition: all 0.3s ease;
+}
+
+/* Для плавного закрытия модального окна */
+.record-modal.fade-out {
+    animation: modalFadeOut 0.3s ease;
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Когда модальное окно открыто, блокируем скролл страницы */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .record-modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .record-modal-header {
+        padding: 16px 20px;
+    }
+    
+    .record-modal-body {
+        padding: 20px;
+    }
+    
+    .record-modal-actions {
+        flex-direction: column;
+    }
+    
+    .record-modal-actions button {
+        min-width: 100%;
+    }
+    
+    .record-info div {
+        flex-direction: column;
+        margin-bottom: 12px;
+    }
+    
+    .record-info strong {
+        min-width: auto;
+        margin-bottom: 2px;
+        color: var(--black);
+    }
+}
+
+@media (max-width: 480px) {
+    .make-record-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 16px;
+    }
+    
+    .record-modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .record-info-section h4,
+    .record-notes-section h4 {
+        font-size: 16px;
+    }
 }
